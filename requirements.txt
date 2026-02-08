@@ -1,8 +1,8 @@
-streamlit>=1.30.0
-pandas>=2.1.0
-numpy>=1.26.0
-scikit-learn>=1.3.0
-xgboost>=2.0.0
-catboost>=1.2.0
-plotly>=5.18.0
-extra-streamlit-components  # For custom UI elements
+streamlit
+pandas
+numpy
+plotly
+folium
+streamlit-folium
+xgboost
+scikit-learn
