@@ -6,118 +6,140 @@ import plotly.graph_objects as go
 from streamlit_folium import st_folium
 import folium
 
-# --- 1. CONFIG & SEAMLESS LUXURY STYLING ---
-st.set_page_config(page_title="AURUM | Obsidian Terminal", layout="wide")
+# --- 1. IMMUTABLE CONFIG & CSS INJECTION ---
+# Setting layout to 'wide' here is the first step to prevent snapping
+st.set_page_config(page_title="AURUM | Obsidian Terminal", layout="wide", initial_sidebar_state="expanded")
 
-# Polished Sidebar & Global Theme
+# Injecting CSS at the very top to lock styles before rendering components
 st.markdown("""
     <style>
-    /* Global Reset */
+    /* REMOVE PADDING & HEADERS TO PREVENT SHIFT */
+    .block-container { padding-top: 0rem; padding-bottom: 0rem; }
     header, footer, .stDeployButton { visibility: hidden; }
+    
+    /* THE OBSIDIAN THEME */
     .stApp { background-color: #000000; color: #D4AF37; font-family: 'Inter', sans-serif; }
     
-    /* Polished Sidebar Override */
+    /* SIDEBAR LOCK: Matches background to prevent "Gray Snap" */
     [data-testid="stSidebar"] {
         background-color: #050505 !important;
-        border-right: 1px solid #D4AF37;
-        min-width: 350px !important;
-    }
-    [data-testid="stSidebarNav"] { background-image: none; }
-    
-    /* Elegant Navigation Buttons */
-    .nav-btn {
-        padding: 15px;
-        border-bottom: 1px solid rgba(212, 175, 55, 0.2);
-        color: #D4AF37;
-        cursor: pointer;
+        border-right: 2px solid #D4AF37;
+        box-shadow: 10px 0px 30px rgba(212, 175, 55, 0.05);
     }
     
-    /* Custom Slider & Input Glow */
-    .stSlider [data-baseweb="slider"] { color: #D4AF37 !important; }
-    div[data-baseweb="input"] { background-color: #111 !important; border: 1px solid #D4AF37 !important; color: white !important; }
+    /* REMOVE SIDEBAR TOP MARGIN */
+    [data-testid="stSidebar"] > div:first-child { padding-top: 2rem; }
     
-    /* Metrics */
-    div[data-testid="stMetricValue"] { color: #D4AF37 !important; font-family: 'Playfair Display', serif; }
+    /* GOLD ACCENTS & INPUTS */
+    .stMetricValue { color: #D4AF37 !important; font-family: 'Playfair Display', serif; text-shadow: 0 0 10px rgba(212, 175, 55, 0.3); }
+    div[data-baseweb="select"] > div, div[data-baseweb="input"] > div {
+        background-color: #0a0a0a !important;
+        border: 1px solid rgba(212, 175, 55, 0.3) !important;
+        color: #fff !important;
+    }
+    
+    /* PREVENT BUTTON SNAP */
+    .stButton > button {
+        width: 100%;
+        background: linear-gradient(135deg, #111 0%, #000 100%);
+        border: 1px solid #D4AF37 !important;
+        color: #D4AF37 !important;
+        transition: all 0.4s ease;
+    }
+    .stButton > button:hover {
+        background: #D4AF37 !important;
+        color: #000 !important;
+        box-shadow: 0 0 20px rgba(212, 175, 55, 0.4);
+    }
     </style>
 """, unsafe_allow_html=True)
 
-# --- 2. THE MARKET DATA (2025-2026 INTELLIGENCE) ---
+# --- 2. LUXURY DATA NODES (MUMBAI 2026) ---
 mumbai_intel = {
-    "Malabar Hill (The Ridge)": {"base": 115000, "growth": 1.05, "coords": [18.9548, 72.7985]},
-    "Bandra West (Pali Hill)": {"base": 95000, "growth": 1.08, "coords": [19.0655, 72.8252]},
-    "Worli (Coastal Node)": {"base": 82000, "growth": 1.07, "coords": [19.0176, 72.8172]},
-    "Juhu (The Shore)": {"base": 75000, "growth": 1.06, "coords": [19.1075, 72.8263]},
-    "Wadala (Smart City)": {"base": 32000, "growth": 1.16, "coords": [19.0215, 72.8541]},
-    "Navi Mumbai (Airport Hub)": {"base": 21000, "growth": 1.22, "coords": [19.0330, 73.0297]}
+    "Malabar Hill (The Ridge)": {"base": 118000, "growth": 1.05, "coords": [18.9548, 72.7985]},
+    "Bandra West (Pali Hill)": {"base": 98000, "growth": 1.08, "coords": [19.0655, 72.8252]},
+    "Worli (Sea Face)": {"base": 85000, "growth": 1.07, "coords": [19.0176, 72.8172]},
+    "Powai (Lake Enclave)": {"base": 36000, "growth": 1.12, "coords": [19.1176, 72.9060]},
+    "Navi Mumbai (Capital Node)": {"base": 24000, "growth": 1.25, "coords": [19.0330, 73.0297]}
 }
 
-# --- 3. POLISHED SIDEBAR NAVIGATION ---
+# --- 3. THE CONTROL VAULT (POLISHED SIDEBAR) ---
 with st.sidebar:
-    st.markdown("<h1 style='text-align:center; font-size:32px; letter-spacing:8px;'>AURUM</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align:center; color:#888; font-size:12px;'>QUANTUM TERMINAL v3.0</p>", unsafe_allow_html=True)
-    st.markdown("---")
+    st.markdown("<h1 style='text-align:center; font-size:36px; letter-spacing:10px; color:#D4AF37;'>AURUM</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align:center; color:#666; font-size:10px; margin-top:-15px;'>MUMBAI QUANTUM TERMINAL v3.5</p>", unsafe_allow_html=True)
     
-    # Navigation Tabs (Improved UI)
-    nav = st.radio("WORKFLOW", ["Terminal", "Market Heatmap", "Portfolio Intelligence"], label_visibility="collapsed")
-    
-    st.markdown("<br>### 📍 MICRO-MARKET", unsafe_allow_html=True)
-    loc = st.selectbox("Location Node", list(mumbai_intel.keys()), label_visibility="collapsed")
-    
-    with st.expander("🏗️ ARCHITECTURAL SPECS", expanded=True):
-        area = st.number_input("Carpet Area (SqFt)", 500, 20000, 1500)
-        ceiling = st.slider("Ceiling Height (Ft)", 9.0, 18.0, 11.0)
-        floor = st.slider("Elevation (Floor)", 0, 120, 30)
-        construction = st.select_slider("Build Quality", ["Grade B", "Grade A", "Ultra-Luxe"])
-
-    with st.expander("💎 PREMIUM PARAMETERS"):
-        khata = st.selectbox("Legal Status", ["A-Khata", "RERA Registered", "Occupancy Certificate (OC)"])
-        ev_slots = st.number_input("EV Charging Bays", 0, 10, 2)
-        vastu = st.toggle("Vastu Compliance", value=True)
-        smart_home = st.toggle("AI-Integrated Automation", value=True)
-
     st.markdown("<br>", unsafe_allow_html=True)
-    execute = st.button("RUN QUANTUM ANALYSIS", use_container_width=True)
-
-# --- 4. TERMINAL INTERFACE ---
-if not execute:
-    # Centered Minimalist Welcome
-    st.markdown("<div style='height: 25vh;'></div>", unsafe_allow_html=True)
-    st.markdown("<h1 style='text-align:center; font-size:72px; letter-spacing:15px;'>AURUM</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align:center; font-size:18px; color:rgba(212,175,55,0.6);'>MUMBAI REAL ESTATE QUANTUM FORECASTER 2026</p>", unsafe_allow_html=True)
-else:
-    # Logic Engine
-    data = mumbai_intel[loc]
-    build_mult = {"Grade B": 0.9, "Grade A": 1.0, "Ultra-Luxe": 1.3}[construction]
-    floor_rise = 1 + (floor * 0.005)
+    loc = st.selectbox("MICRO-MARKET NODE", list(mumbai_intel.keys()))
     
-    price_2025 = (data['base'] * area * build_mult * floor_rise * (1.1 if smart_home else 1.0)) / 10000000
+    st.markdown("---")
+    # Using columns for minute parameters to save space and look "Technical"
+    col_a, col_b = st.columns(2)
+    area = col_a.number_input("CARPET (SQFT)", 500, 25000, 2000)
+    ceiling = col_b.number_input("CEILING (FT)", 9.0, 20.0, 12.0)
+    
+    floor = st.slider("ELEVATION (FLOOR)", 0, 120, 40)
+    
+    with st.expander("🛡️ LEGAL & INFRASTRUCTURE", expanded=False):
+        status = st.selectbox("LEGAL GRADE", ["RERA Registered", "OC Received", "A-Khata Clear"])
+        security = st.select_slider("SECURITY TIER", ["Standard", "Elite-24", "NSG Command"])
+        ev_bays = st.number_input("EV BAYS", 0, 10, 2)
+
+    with st.expander("✨ LIFESTYLE ASSETS", expanded=False):
+        vastu = st.toggle("VASTU COMPLIANT", value=True)
+        automation = st.toggle("AI-SMART INTEGRATION", value=True)
+        terrace = st.toggle("PRIVATE SKY TERRACE")
+    
+    st.markdown("<br>", unsafe_allow_html=True)
+    execute = st.button("RUN QUANTUM VALUATION")
+
+# --- 4. THE TERMINAL INTERFACE ---
+if not execute:
+    # Centered Minimalist Welcome to hide components before run
+    st.markdown("<div style='height: 35vh;'></div>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align:center; font-size:100px; letter-spacing:20px; margin:0;'>AURUM</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align:center; font-size:14px; color:#D4AF37; letter-spacing:5px;'>INITIALIZING QUANTUM FORECASTS... SELECT NODE IN VAULT</p>", unsafe_allow_html=True)
+else:
+    # --- LOGIC ENGINE ---
+    data = mumbai_intel[loc]
+    # Detailed parameter impacts
+    f_premium = 1 + (floor * 0.006) # Floor rise
+    c_premium = 1 + ((ceiling - 9) * 0.03) # Ceiling premium
+    asset_premium = (1.15 if terrace else 1.0) * (1.1 if automation else 1.0)
+    
+    price_2025 = (data['base'] * area * f_premium * c_premium * asset_premium) / 10000000
     price_2026 = price_2025 * data['growth']
 
-    # Satellite Map
-    st.markdown("### 🛰️ SATELLITE NODE RECONNAISSANCE")
+    # --- TOP SATELLITE RECON ---
     m = folium.Map(location=data['coords'], zoom_start=18, tiles='https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', attr='Google')
-    folium.CircleMarker(data['coords'], radius=30, color='#D4AF37', fill=True, weight=1).add_to(m)
-    st_folium(m, width=1400, height=400)
+    folium.CircleMarker(data['coords'], radius=40, color='#D4AF37', fill=True, weight=2).add_to(m)
+    st_folium(m, width=1600, height=450, use_container_width=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
     
-    col1, col2 = st.columns([2, 1])
+    # --- DATA DRAWER ---
+    c1, c2, c3 = st.columns([1.5, 1, 1])
     
-    with col1:
+    with c1:
         st.markdown("### 🧬 INVESTMENT DNA")
-        # Unique Radar/Spider Graph
-        categories = ['ROI Alpha', 'Legal Tier', 'Luxury Index', 'Infra Score', 'Vastu Score']
-        vals = [(data['growth']-1)*500, 95, (floor/1.2), 85, 95 if vastu else 10]
-        
+        # Unique Radar Graph for Minute Parameters
+        categories = ['ROI Alpha', 'Legal Safety', 'Luxury Tier', 'Infra Score', 'Vastu Score']
+        vals = [(data['growth']-1)*500, 100 if "OC" in status else 70, (floor/1.2), 90, 95 if vastu else 10]
         fig = go.Figure(data=go.Scatterpolar(r=vals, theta=categories, fill='toself', line_color='#D4AF37'))
-        fig.update_layout(polar=dict(bgcolor="black", radialaxis=dict(visible=False)), paper_bgcolor="black", showlegend=False)
+        fig.update_layout(polar=dict(bgcolor="black", radialaxis=dict(visible=False)), paper_bgcolor="black", showlegend=False, margin=dict(l=0,r=0,t=20,b=20))
         st.plotly_chart(fig, use_container_width=True)
 
-    with col2:
-        st.markdown(f"### 💎 VALUATION")
-        st.metric("2026 FORECAST", f"₹ {price_2026:.2f} Cr")
-        st.metric("GROWTH YOY", f"{round((data['growth']-1)*100, 1)}%", "+ Alpha")
+    with c2:
+        st.markdown("### 💎 FORECAST")
+        st.metric("2026 VALUATION", f"₹ {price_2026:.2f} Cr")
+        st.metric("YOY ALPHA", f"+{round((data['growth']-1)*100, 1)}%")
         st.markdown("---")
-        st.write(f"**Elevation:** {floor}th Level")
-        st.write(f"**Legal:** {khata}")
-        st.write(f"**Automation:** {'Active' if smart_home else 'Inactive'}")
+        st.write(f"**Base 2025:** ₹ {price_2025:.2f} Cr")
+        st.write(f"**Stamp Duty (6%):** ₹ {price_2026*0.06:.2f} Cr")
+
+    with c3:
+        st.markdown("### ⚙️ SPECIFICATIONS")
+        st.write(f"**Legal:** {status}")
+        st.write(f"**Security:** {security}")
+        st.write(f"**Ceiling:** {ceiling} Ft")
+        st.write(f"**EV Hub:** {ev_bays} Bays")
+        st.write(f"**Automation:** {'Active' if automation else 'None'}")
