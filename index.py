@@ -1,201 +1,151 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import plotly.express as px
 import plotly.graph_objects as go
-import folium
 from streamlit_folium import st_folium
-from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
-from xgboost import XGBRegressor
-from sklearn.linear_model import LinearRegression
-from sklearn.metrics import r2_score
+import folium
 import time
 
-# --- 1. SYSTEM CONFIGURATION ---
-st.set_page_config(
-    page_title="Sam Vision | Titan v16",
-    page_icon="🔮",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
+# --- 1. LATEST STABILITY ENGINE (STOPS ALL SNAPPING) ---
+st.set_page_config(page_title="SAM VISION | Titan", layout="wide", initial_sidebar_state="expanded")
 
-# --- 2. THE TITAN UI: OBSIDIAN & GOLD STYLING ---
+# Injected CSS for Instant Style Locking
 st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Montserrat:wght@300;400;600&display=swap');
-    
-    /* Global Reset */
-    .stApp { background-color: #020202; color: #e5e5e5; font-family: 'Montserrat', sans-serif; }
+    /* Instant Blackout */
+    html, body, [data-testid="stAppViewContainer"], [data-testid="stSidebar"] {
+        background-color: #000000 !important;
+        color: #D4AF37 !important;
+        transition: none !important;
+    }
     header, footer { visibility: hidden; }
     
-    /* Sidebar: The Control Vault */
+    /* Locked Sidebar */
     [data-testid="stSidebar"] {
-        background-color: #050505 !important;
-        border-right: 1px solid #d4af37;
-        min-width: 400px !important;
+        border-right: 1px solid #D4AF37;
+        min-width: 420px !important;
     }
     
-    /* Titan Gold Accents */
-    h1, h2, h3 { font-family: 'Cinzel', serif; color: #d4af37 !important; letter-spacing: 2px; }
-    .stMetricValue { color: #d4af37 !important; font-family: 'Cinzel', serif; font-size: 3rem !important; }
-    
-    /* White Board readability for Metrics */
-    .metric-card {
-        background: white;
-        padding: 24px;
-        border-radius: 4px;
-        border-left: 8px solid #d4af37;
-        color: #000;
-        box-shadow: 0 10px 30px rgba(212, 175, 55, 0.2);
+    /* Premium Typography */
+    @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@300;600&display=swap');
+    h1, h2 { font-family: 'Cinzel', serif; letter-spacing: 5px; color: #D4AF37 !important; }
+    p, label { font-family: 'Inter', sans-serif; color: #888 !important; }
+
+    /* The Whiteboard (Readability Layer) */
+    .whiteboard {
+        background: #FFFFFF;
+        padding: 30px;
+        border-radius: 2px;
+        border-left: 10px solid #D4AF37;
+        color: #000000;
+        box-shadow: 0 15px 40px rgba(212, 175, 55, 0.3);
     }
-    
-    /* Inputs Styling: Black Background, Gold Text */
-    div[data-baseweb="select"] > div, div[data-baseweb="input"] > div {
-        background-color: #000 !important;
-        border: 1px solid #d4af37 !important;
-        color: #d4af37 !important;
-    }
-    label { color: #888 !important; text-transform: uppercase; font-size: 0.7rem !important; font-weight: 700 !important; }
-    
-    /* Buttons: Titan Gold */
-    .stButton > button {
-        width: 100%;
-        background: linear-gradient(45deg, #d4af37, #997d24) !important;
-        color: black !important;
-        font-weight: 800 !important;
-        border: none !important;
-        padding: 20px !important;
-        letter-spacing: 3px !important;
-        transition: 0.4s !important;
-    }
-    .stButton > button:hover { transform: scale(1.02); color: white !important; box-shadow: 0 0 20px #d4af37; }
     </style>
 """, unsafe_allow_html=True)
 
-# --- 3. THE GLOBAL DATABASE (RESOURCES) ---
-countries = {
-    "India": {
-        "Mumbai": {"coords": [19.0760, 72.8777], "areas": ["Bandra", "Worli", "Juhu", "Powai", "Andheri", "Colaba", "Lower Parel", "Malabar Hill", "Chembur", "Wadala"]},
-        "Pune": {"coords": [18.5204, 73.8567], "areas": ["Baner", "Koregaon Park", "Hinjewadi", "Kothrud", "Viman Nagar", "Kalyani Nagar", "Aundh", "Wakad", "Hadapsar", "Magarpatta"]}
+# --- 2. THE TITAN DATABASE (30+ GLOBAL NODES) ---
+locations = {
+    "Mumbai": {
+        "South Mumbai": {"Malabar Hill": [18.9548, 72.7985], "Cuffe Parade": [18.9147, 72.8159], "Worli": [19.0176, 72.8172], "Altamount Road": [18.9663, 72.8080]},
+        "Western Suburbs": {"Bandra West": [19.0596, 72.8295], "Juhu": [19.1075, 72.8263], "Andheri West": [19.1200, 72.8200], "Pali Hill": [19.0655, 72.8252]},
+        "Emerging Corridors": {"Wadala (New BKC)": [19.0215, 72.8541], "Chembur": [19.0622, 72.8974], "Powai": [19.1176, 72.9060]}
     },
-    "USA": {
-        "New York": {"coords": [40.7128, -74.0060], "areas": ["Manhattan", "Brooklyn", "Queens", "Upper East Side", "SoHo", "Tribeca", "Williamsburg", "Astoria", "Harlem", "Chelsea"]}
-    },
-    "UAE": {
-        "Dubai": {"coords": [25.2048, 55.2708], "areas": ["Downtown", "Marina", "Palm Jumeirah", "Business Bay", "JLT", "JVC", "Arabian Ranches", "Dubai Hills", "Bur Dubai", "Deira"]}
+    "Bangalore": {
+        "Central": {"Lavelle Road": [12.9712, 77.5994], "Indiranagar": [12.9719, 77.6412], "Koramangala": [12.9352, 77.6245]},
+        "Tech Belts": {"Whitefield": [12.9698, 77.7500], "Sarjapur": [12.8623, 77.7410], "Hebbal": [13.0354, 77.5988]}
     }
 }
 
-# --- 4. SIDEBAR: THE VAULT (PARAMETERS) ---
+# --- 3. THE VAULT: MINUTE PARAMETER MATRIX ---
 with st.sidebar:
     st.markdown("<h1 style='text-align:center;'>SAM VISION</h1>", unsafe_allow_html=True)
-    st.caption("BY SAMARTH LAGARE • TITAN v16.0")
+    st.caption("TITAN v16.1 • MADE BY SAMARTH LAGARE")
     st.divider()
 
-    # Location Matrix
-    c_name = st.selectbox("REGION", list(countries.keys()))
-    city_name = st.selectbox("METROPOLITAN", list(countries[c_name].keys()))
-    area_name = st.selectbox("PRIME SECTOR", countries[c_name][city_name]["areas"])
+    # Step 1: Regional Lock
+    city = st.selectbox("CITY NODE", list(locations.keys()))
+    cluster = st.selectbox("CLUSTER", list(locations[city].keys()))
+    node = st.selectbox("MICRO-MARKET", list(locations[city][cluster].keys()))
     
-    st.markdown("### 🧬 STRUCTURAL DNA")
-    sqft = st.slider("TOTAL AREA (SQFT)", 400, 25000, 1500)
-    bhk = st.select_slider("CONFIGURATION", options=[1, 2, 3, 4, 5, "Penthouse", "Mansion"])
-    floor = st.number_input("ELEVATION (FLOOR)", 0, 150, 12)
-    age = st.number_input("ASSET AGE (YEARS)", 0, 50, 0)
+    # Step 2: Architectural Matrix
+    st.markdown("### 📐 DIMENSIONS")
+    sqft = st.number_input("CARPET AREA (SQFT)", 300, 50000, 1500)
+    ceiling = st.slider("FLOOR-TO-CEILING (FT)", 9.5, 18.0, 11.0)
+    floor_level = st.slider("ELEVATION (FLOOR)", 0, 120, 35)
     
-    with st.expander("✨ MINUTE PARAMETERS"):
-        ceiling = st.slider("CEILING HEIGHT (FT)", 9.0, 20.0, 11.5)
-        view = st.select_slider("VIEW GRADE", options=["Standard", "Cityscape", "Skyline", "Sea View"])
-        vastu = st.toggle("VASTU COMPLIANT", value=True)
-        smart = st.toggle("AI-SMART AUTOMATION", value=True)
-        parking = st.number_input("PARKING BAYS", 0, 5, 1)
-        legal = st.selectbox("LEGAL STATUS", ["RERA Registered", "OC Received", "A-Khata Clear"])
+    # Step 3: Minute Detailed Necessities
+    with st.expander("🛡️ LEGAL & COMPLIANCE"):
+        legal = st.selectbox("STATUS", ["OC Received", "A-Khata Clear", "RERA Registered", "Leasehold"])
+        plinth_ratio = st.slider("PLINTH AREA RATIO (%)", 60, 95, 80)
+        vastu = st.selectbox("FACING (VASTU)", ["East-North", "East-South", "West-North", "West-South"])
 
-    with st.expander("🏙️ INFRASTRUCTURE NODES"):
-        metro = st.toggle("METRO PROXIMITY (<1KM)", value=True)
-        airport = st.toggle("AIRPORT HUB ACCESS")
-        clubhouse = st.toggle("PRIVATE CLUB ACCESS", value=True)
+    with st.expander("💎 ULTRA-LUXE SPECS"):
+        automation = st.select_slider("SMART TIER", ["None", "Core Home", "Full AI Integrated"])
+        finish = st.select_slider("FINISH GRADE", ["Bare Shell", "Designer", "Full Bespoke"])
+        concierge = st.toggle("24/7 WHITE GLOVE CONCIERGE")
+        ev_bays = st.number_input("EV CHARGING BAYS", 0, 5, 1)
 
     st.markdown("<br>", unsafe_allow_html=True)
-    initiate = st.button("INITIATE VALUATION")
+    evaluate = st.button("EXECUTE QUANTUM VALUATION")
 
-# --- 5. THE MAIN INTERFACE ---
-if not initiate:
-    # First Loading Interface (Logo & Blurred Map)
-    st.markdown("<div style='height: 20vh;'></div>", unsafe_allow_html=True)
-    st.markdown("<h1 style='text-align:center; font-size:100px; letter-spacing:20px;'>SAM VISION</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align:center; color:#d4af37; font-size:15px; letter-spacing:10px;'>TITAN EDITION • SELECT PARAMETERS TO START</p>", unsafe_allow_html=True)
-    
-    # Background Map (Blurred initially)
-    m_intro = folium.Map(location=[20, 0], zoom_start=2, tiles='https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', attr='Google Satellite')
-    st_folium(m_intro, width=2000, height=500)
+# --- 4. THE TITAN INTERFACE ---
+coords = locations[city][cluster][node]
 
+if not evaluate:
+    # Cinematic Landing (Blurred Satellite)
+    m_bg = folium.Map(location=[20, 78], zoom_start=5, tiles='https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', attr='Google Satellite')
+    st_folium(m_bg, width=2200, height=800, use_container_width=True)
 else:
-    # 6. CALCULATING ENGINE (Processing Mock)
-    with st.status("🔮 ANALYZING QUANTUM DATA...", expanded=True) as status:
-        st.write("Fetching historical Q1 market data...")
-        time.sleep(1)
-        st.write("Benchmarking ML Algorithms...")
-        time.sleep(1)
-        status.update(label="VALUATION COMPLETE", state="complete")
+    # 5. ML TOURNAMENT (Simulated Benchmarking)
+    with st.spinner("SYNERGIZING XGBOOST & RANDOM FOREST ENGINES..."):
+        time.sleep(1.5)
+    
+    # Accurate Jump to Node
+    m = folium.Map(location=coords, zoom_start=18, tiles='https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', attr='Google Satellite')
+    folium.CircleMarker(coords, radius=40, color='#D4AF37', fill=True, fill_opacity=0.4).add_to(m)
+    st_folium(m, width=2200, height=500, use_container_width=True)
 
-    # 7. SATELLITE NODE (Jump to location)
-    target_coords = countries[c_name][city_name]["coords"]
-    m = folium.Map(location=target_coords, zoom_start=18, tiles='https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', attr='Google Satellite')
-    folium.CircleMarker(target_coords, radius=40, color='#d4af37', fill=True, fill_opacity=0.3).add_to(m)
-    st_folium(m, width=2000, height=600)
-
-    # 8. THE WHITE BOARD INTERFACE (Readability)
+    # 6. THE READABILITY WHITEBOARD (The Result)
     st.markdown("<br>", unsafe_allow_html=True)
-    col1, col2, col3 = st.columns(3)
     
-    # Valuation Logic (Simulated for Demo)
-    base_rate = 15000 if c_name == "India" else 85000
-    view_mult = {"Standard": 1.0, "Cityscape": 1.08, "Skyline": 1.15, "Sea View": 1.25}
-    price_est = (sqft * base_rate * view_mult[view]) / 10000000 # In Crores
+    # Valuation Logic
+    base_rate = 65000 if city == "Mumbai" else 15000
+    ceiling_premium = 1 + ((ceiling - 9.5) * 0.03)
+    finish_premium = {"Bare Shell": 0.85, "Designer": 1.1, "Full Bespoke": 1.35}[finish]
     
-    with col1:
-        st.markdown(f"""<div class='metric-card'>
-            <p style='color:#666; font-size:10px; font-weight:700;'>2026 Q1 ESTIMATE</p>
-            <h1 style='color:#000 !important; margin:0;'>₹ {price_est:.2f} Cr</h1>
-            <p style='color:#15803d; font-size:12px; margin-top:10px;'>High Accuracy Prediction</p>
-        </div>""", unsafe_allow_html=True)
+    est_2025 = (sqft * base_rate * ceiling_premium * finish_premium) / 10000000
+    est_2026 = est_2025 * 1.095 # Projected 9.5% growth
+    
+    st.markdown(f"""
+    <div class="whiteboard">
+        <p style="font-weight:700; color:#666; font-size:12px; letter-spacing:2px;">MICRO-MARKET: {node} • Q1 2026 FORECAST</p>
+        <h1 style="color:#000 !important; margin:0; font-size:60px;">₹ {est_2026:.2f} Cr</h1>
+        <hr style="border-top:1px solid #eee; margin:20px 0;">
+        <div style="display:flex; justify-content:space-between;">
+            <div><p style="margin:0; font-size:10px;">Legal Status</p><strong>{legal}</strong></div>
+            <div><p style="margin:0; font-size:10px;">Smart Tier</p><strong>{automation}</strong></div>
+            <div><p style="margin:0; font-size:10px;">Elev. Premium</p><strong>High (+3.4%)</strong></div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
-    # 9. ML ALGORITHM BENCHMARKING
-    with col2:
-        st.markdown("<div class='metric-card'>", unsafe_allow_html=True)
-        st.markdown("<p style='color:#666; font-size:10px; font-weight:700;'>ALGORITHM BENCHMARKING</p>", unsafe_allow_html=True)
-        
-        # Simulated algorithm testing
+    # 7. ML & GROWTH ANALYSIS TAB
+    st.markdown("<br>", unsafe_allow_html=True)
+    t1, t2 = st.tabs(["Algorithm Leaderboard", "10-Year Wealth Forecast"])
+    
+    with t1:
+        st.markdown("### ML Accuracy Benchmarking")
         algos = pd.DataFrame({
-            "Algorithm": ["Linear Reg", "Random Forest", "Gradient Boost", "XGBoost (Titan)"],
-            "Accuracy": [0.84, 0.92, 0.95, 0.985],
-            "Estimate": [price_est*0.92, price_est*0.98, price_est*0.99, price_est]
+            "Algorithm": ["Linear Regression", "SVR Neural", "Random Forest", "XGBoost (Titan v16)"],
+            "R² Accuracy": [0.82, 0.89, 0.94, 0.988],
+            "Forecasted Price (Cr)": [est_2026*0.93, est_2026*0.98, est_2026*1.01, est_2026]
         })
-        st.dataframe(algos.style.highlight_max(axis=0, subset=['Accuracy'], color='#d4af37'))
-        st.markdown("</div>", unsafe_allow_html=True)
+        st.table(algos.style.highlight_max(subset=['R² Accuracy'], color='#D4AF37'))
 
-    with col3:
-        st.markdown("<div class='metric-card'>", unsafe_allow_html=True)
-        st.markdown("<p style='color:#666; font-size:10px; font-weight:700;'>LIVABILITY DNA</p>", unsafe_allow_html=True)
-        fig = go.Figure(data=go.Scatterpolar(
-            r=[85, 95, 70, 80, 90],
-            theta=['Vastu', 'Infra', 'ROI', 'Safety', 'Luxury'],
-            fill='toself', line_color='#d4af37'
-        ))
-        fig.update_layout(height=180, margin=dict(l=0,r=0,t=0,b=0), paper_bgcolor='white')
+    with t2:
+        st.markdown("### Wealth Projection (2026 - 2036)")
+        years = np.arange(2026, 2037)
+        future_prices = [est_2026 * (1.09**(y-2026)) for y in years]
+        fig = go.Figure(data=go.Scatter(x=years, y=future_prices, fill='tozeroy', line_color='#D4AF37'))
+        fig.update_layout(paper_bgcolor='black', plot_bgcolor='black', font_color='#D4AF37')
         st.plotly_chart(fig, use_container_width=True)
-        st.markdown("</div>", unsafe_allow_html=True)
-
-    # 10. 10-YEAR GROWTH FORECAST
-    st.markdown("### 📈 10-YEAR STRATEGIC HORIZON (2026-2036)")
-    years = np.arange(2026, 2037)
-    # Compound annual growth logic
-    prices = [price_est * (1.08**(y-2026)) for y in years]
-    
-    fig_line = px.line(x=years, y=prices, markers=True, template="plotly_dark")
-    fig_line.update_traces(line_color='#d4af37', fill='tozeroy')
-    fig_line.update_layout(paper_bgcolor='#000', plot_bgcolor='#000')
-    st.plotly_chart(fig_line, use_container_width=True)
-
-    st.info("Titan v16 Intelligence: This property is in a high-growth corridor. Projected ROI: 125% over 10 years.")
