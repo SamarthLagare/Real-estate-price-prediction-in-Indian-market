@@ -1,8 +1,1 @@
-streamlit
-pandas
-numpy
-plotly
-folium
-streamlit-folium
-xgboost
-scikit-learn
+pip install streamlit streamlit-folium folium plotly pandas numpy xgboost scikit-learn
